@@ -54,8 +54,14 @@ def db_search(query: str):
     Search snippets by keyword across multiple fields.
     Returns lightweight rows for the results list.
     """
+
+    ''' Match snippets where any of the fields contain the query string.
+        % is used as a wildcard for LIKE operator in SQL.
+    '''
     q = f"%{query.strip()}%"
 
+    ''' Connects to the database and is requesting up to 200 snippets
+        that match the search query in any of the specified fields.'''
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
         cur.execute("""
@@ -72,7 +78,7 @@ def db_search(query: str):
 
         return cur.fetchall()
 
-
+# This is used when the user clicks on a snippet from the list to load the full snippet details.
 def db_get(snippet_id: int):
     """
     Fetch a full snippet by ID.
@@ -88,7 +94,7 @@ def db_get(snippet_id: int):
 
         return cur.fetchone()
 
-
+# This adds a new snippet to the database and returns the ID of the newly created snippet.
 def db_insert(title, language, tags, status, code, notes):
     """
     Insert a brand-new snippet.
@@ -103,7 +109,7 @@ def db_insert(title, language, tags, status, code, notes):
         conn.commit()
         return cur.lastrowid
 
-
+#  This updates an existing snippet in the database with new values and sets the updated_at timestamp to the current time.
 def db_update(snippet_id, title, language, tags, status, code, notes):
     """
     Update an existing snippet.
@@ -124,7 +130,7 @@ def db_update(snippet_id, title, language, tags, status, code, notes):
 
         conn.commit()
 
-
+#  This permanently deletes a snippet from the database based on its ID.
 def db_delete(snippet_id):
     """
     Permanently delete a snippet.
@@ -149,15 +155,20 @@ class SnippetArsenalApp(tk.Tk):
         super().__init__()
 
         # Window configuration
-        self.title("Snippet Arsenal")
+        #  title() sets the window name
+        self.title("Code Snippet Arsenal") 
+        # This sets the starting size of the window
         self.geometry("1100x650")
+        # This sets the minimum size the window can be resized to
         self.minsize(900, 550)
 
         # Track which snippet is currently selected
+        # If None, no snippet is selected (new snippet mode)
         self.selected_id = None
 
         # ==============================
         # Top bar (Search + New)
+        # Creates the search input and buttons at the top of the window.
         # ==============================
 
         top = ttk.Frame(self, padding=10)
@@ -165,18 +176,24 @@ class SnippetArsenalApp(tk.Tk):
 
         ttk.Label(top, text="Search:").pack(side="left")
 
+        # StringVar() is Tkinter's live variable object for text inputs.
         self.search_var = tk.StringVar()
         self.search_entry = ttk.Entry(top, textvariable=self.search_var, width=50)
         self.search_entry.pack(side="left", padx=8)
+        # Makes it so that pressing Enter in the search box triggers a search.
         self.search_entry.bind("<Return>", lambda e: self.refresh_results())
 
+        # Search Button
         ttk.Button(top, text="Search", command=self.refresh_results).pack(side="left")
+        # New Snippet Button
         ttk.Button(top, text="New", command=self.new_snippet).pack(side="left", padx=8)
 
         # ==============================
         # Main layout (split view)
         # ==============================
 
+        # Main split pane
+        # Left = results list, Right = editor
         main = ttk.PanedWindow(self, orient="horizontal")
         main.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
@@ -210,6 +227,7 @@ class SnippetArsenalApp(tk.Tk):
         self.results.column("status", width=80, anchor="center")
 
         self.results.pack(fill="both", expand=True)
+        # WHen a row is clicked it calls the on_select method to load the snippet into the editor.
         self.results.bind("<<TreeviewSelect>>", self.on_select)
 
         # ==============================
